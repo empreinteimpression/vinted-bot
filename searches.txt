@@ -3,5 +3,5 @@
 # Triez par "Plus récents" pour de meilleurs résultats.
 # Les lignes qui commencent par # sont ignorées.
 
-https://www.vinted.fr/catalog?search_text=dragon%20quest%20reimagined%20switch&price_to=30.00&currency=EUR&status_ids[]=1&status_ids[]=2&status_ids[]=6&search_id=4888638863&order=newest_first
+https://www.vinted.fr/catalog?search_text=dragon%20quest%20reimagined%20switch&catalog[]=3026&price_to=30.00&currency=EUR&status_ids[]=1&status_ids[]=2&status_ids[]=6&video_game_platform_ids[]=1273&search_id=4889981654&order=newest_first
 https://www.vinted.fr/catalog?search_text=sac%20fjallraven%20kanken&price_to=20&currency=EUR&status_ids[]=6&search_id=4889925104&order=newest_first&price_from=0&brand_ids[]=81026&page=1&time=1792683012
