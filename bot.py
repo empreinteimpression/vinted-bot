@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """Alertes Telegram à partir des pages publiques du catalogue Vinted."""
 
@@ -8,7 +7,8 @@ import os
 import re
 import sys
 import time
-from urllib.parse import urljoin, urlparse
+import unicodedata
+from urllib.parse import parse_qs, urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -138,6 +138,23 @@ def fetch_items(session, url):
     return list(items.values())
 
 
+def _norm(text):
+    text = unicodedata.normalize("NFKD", text or "")
+    text = "".join(c for c in text if not unicodedata.combining(c))
+    return text.lower()
+
+
+def keywords_of(url):
+    """Mots de la recherche (search_text) qui doivent figurer dans l'annonce."""
+    query = parse_qs(urlparse(url).query).get("search_text", [""])[0]
+    return [w for w in re.findall(r"\w+", _norm(query)) if len(w) >= 2]
+
+
+def matches(item, words):
+    text = " ".join(re.findall(r"\w+", _norm(item["title"] + " " + item["details"])))
+    return all(w in text for w in words)
+
+
 def notify(item):
     api_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
@@ -195,9 +212,10 @@ def run_once(urls):
                     "sans notification initiale."
                 )
             else:
+                words = keywords_of(url)
                 new_items = [
                     item for item in items
-                    if item["id"] not in known
+                    if item["id"] not in known and matches(item, words)
                 ]
 
                 for item in reversed(new_items):
