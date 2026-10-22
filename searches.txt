@@ -1,0 +1,6 @@
+# Une URL de recherche Vinted par ligne (copiée depuis votre navigateur,
+# avec vos filtres : marque, taille, prix max, état...).
+# Triez par "Plus récents" pour de meilleurs résultats.
+# Les lignes qui commencent par # sont ignorées.
+
+https://www.vinted.fr/catalog?search_text=nike%20tech%20fleece&price_to=40&order=newest_first
