@@ -3,4 +3,4 @@
 # Triez par "Plus récents" pour de meilleurs résultats.
 # Les lignes qui commencent par # sont ignorées.
 
-https://www.vinted.fr/catalog?search_text=nike%20tech%20fleece&price_to=40&order=newest_first
+https://www.vinted.fr/catalog?search_text=dragon%20quest%20reimagined%20switch&price_to=30.00&currency=EUR&status_ids[]=1&status_ids[]=2&status_ids[]=6&search_id=4888638863&order=newest_first
