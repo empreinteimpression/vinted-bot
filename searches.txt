@@ -10,7 +10,3 @@ https://www.vinted.fr/catalog?search_text=Pok%C3%A9mon%20argent%20soulsilver&cat
 https://www.vinted.fr/catalog?search_text=Jean%20Levi%27s%20501&currency=EUR&order=newest_first&size_ids[]=1638&size_ids[]=1640&size_ids[]=1642&price_from=0&price_to=7&brand_ids[]=6438538&brand_ids[]=5982593&brand_ids[]=5983207&brand_ids[]=6413639&brand_ids[]=10&status_ids[]=1&status_ids[]=2
 https://www.vinted.fr/catalog?search_text=Patagonia&catalog[]=2050&price_from=0&price_to=20&currency=EUR&order=newest_first&size_ids[]=208&size_ids[]=209&brand_ids[]=90804&status_ids[]=6&status_ids[]=1&status_ids[]=2
 https://www.vinted.fr/catalog?search_text=calculatrice%20casio%20graph%2035%20%2B%20e%20ii&price_from=0&price_to=7&currency=EUR&brand_ids[]=2575&brand_ids[]=306878&brand_ids[]=8233&status_ids[]=6&status_ids[]=1&status_ids[]=2&order=newest_first
-https://www.vinted.fr/catalog?search_text=better%20sweater&brand_ids[]=90804&price_to=25&currency=EUR&status_ids[]=6&status_ids[]=1&status_ids[]=2&status_ids[]=3&order=newest_first
-https://www.vinted.fr/catalog?search_text=synchilla&brand_ids[]=90804&price_to=25&currency=EUR&status_ids[]=6&status_ids[]=1&status_ids[]=2&status_ids[]=3&order=newest_first
-https://www.vinted.fr/catalog?search_text=nano%20puff&brand_ids[]=90804&price_to=35&currency=EUR&status_ids[]=6&status_ids[]=1&status_ids[]=2&status_ids[]=3&order=newest_first
-https://www.vinted.fr/catalog?search_text=retro-x&brand_ids[]=90804&price_to=40&currency=EUR&status_ids[]=6&status_ids[]=1&status_ids[]=2&status_ids[]=3&order=newest_first
