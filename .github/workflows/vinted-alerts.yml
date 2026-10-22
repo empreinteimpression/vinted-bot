@@ -1,10 +1,13 @@
-
+```yaml
 name: Vinted alerts
 
 on:
   schedule:
-   - cron: "3-59/5 * * * *"
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -59,16 +62,4 @@ jobs:
       - name: Sauvegarder seen.json
         if: always()
         run: |
-          if [ -f seen.json ]; then
-            git config user.name "vinted-bot"
-            git config user.email "vinted-bot@users.noreply.github.com"
-            git add seen.json
-            if ! git diff --staged --quiet; then
-              git commit -m "update seen"
-              git push
-            else
-              echo "Aucun changement dans seen.json."
-            fi
-          else
-            echo "seen.json absent ; aucune sauvegarde à effectuer."
-          fi
+         
