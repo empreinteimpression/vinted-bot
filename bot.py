@@ -91,18 +91,43 @@ def api_params(url):
 
 def fetch_items(session, url):
     domain = urlparse(url).netloc
-    r = session.get(
-        f"https://{domain}/api/v2/catalog/items",
-        params=api_params(url),
-        timeout=20,
-    )
+    endpoint = f"https://{domain}/api/v2/catalog/items"
+
+    try:
+        r = session.get(
+            endpoint,
+            params=api_params(url),
+            timeout=20,
+        )
+    except requests.RequestException as e:
+        raise RuntimeError(f"Erreur réseau vers Vinted : {e}") from e
+
+    if r.status_code == 404:
+        raise RuntimeError(
+            "L'endpoint de recherche Vinted renvoie HTTP 404. "
+            f"URL appelée : {r.url}. "
+            "Le chemin API peut être indisponible ou avoir changé."
+        )
+
     if r.status_code in (401, 403, 429):
         raise RuntimeError(
             f"Vinted a refusé la requête (HTTP {r.status_code}). "
-            "Probablement une IP de datacenter bloquée : voir le README."
+            "La requête peut nécessiter un accès autorisé."
         )
+
     r.raise_for_status()
-    return r.json().get("items", [])
+
+    try:
+        data = r.json()
+    except ValueError as e:
+        raise RuntimeError(
+            "Vinted n'a pas renvoyé de JSON valide."
+        ) from e
+
+    if not isinstance(data, dict):
+        raise RuntimeError("Réponse Vinted inattendue : objet JSON invalide.")
+
+    return data.get("items", [])
 
 
 def price_of(item):
