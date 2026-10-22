@@ -1,3 +1,4 @@
+
 name: Vinted alerts
 
 on:
@@ -15,25 +16,59 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    timeout-minutes: 3
 
-      - uses: actions/setup-python@v5
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
 
-      - run: pip install requests
+      - name: Installer les dépendances
+        run: python -m pip install -r requirements.txt
 
-      - name: Run bot
+      - name: Vérifier la syntaxe Python
+        run: python -m py_compile bot.py
+
+      - name: Vérifier les secrets Telegram
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TELEGRAM_TOKEN" ]; then
+            echo "::error::Le secret TELEGRAM_TOKEN est manquant."
+            exit 1
+          fi
+          if [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "::error::Le secret TELEGRAM_CHAT_ID est manquant."
+            exit 1
+          fi
+          echo "Les deux secrets Telegram sont configurés."
+
+      - name: Lancer le bot
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python bot.py
 
-      - name: Save seen items
+      - name: Sauvegarder seen.json
         if: always()
         run: |
-          git config user.name "vinted-bot"
-          git config user.email "vinted-bot@users.noreply.github.com"
-          git add seen.json
-          git diff --staged --quiet || (git commit -m "update seen" && git push)
+          if [ -f seen.json ]; then
+            git config user.name "vinted-bot"
+            git config user.email "vinted-bot@users.noreply.github.com"
+            git add seen.json
+            if ! git diff --staged --quiet; then
+              git commit -m "update seen"
+              git push
+            else
+              echo "Aucun changement dans seen.json."
+            fi
+          else
+            echo "seen.json absent ; aucune sauvegarde à effectuer."
+          fi
