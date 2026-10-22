@@ -1,6 +1,6 @@
 
 #!/usr/bin/env python3
-"""Alertes Telegram pour les nouvelles annonces du catalogue public Vinted."""
+"""Alertes Telegram à partir des pages publiques du catalogue Vinted."""
 
 import html
 import json
@@ -8,7 +8,7 @@ import os
 import re
 import sys
 import time
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -16,52 +16,55 @@ from bs4 import BeautifulSoup
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
-SEEN_FILE = "seen.json"
 SEARCHES_FILE = "searches.txt"
+SEEN_FILE = "seen.json"
 MAX_SEEN = 500
-LOOP_DELAY = 60
-REQUEST_DELAY = 2
 
-UA = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/124.0.0.0 Safari/537.36"
-)
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+}
 
 
 def load_searches():
-    if not os.path.exists(SEARCHES_FILE):
-        sys.exit(f"{SEARCHES_FILE} introuvable.")
+    if not os.path.isfile(SEARCHES_FILE):
+        sys.exit(f"Fichier manquant : {SEARCHES_FILE}")
 
     with open(SEARCHES_FILE, encoding="utf-8") as f:
-        searches = [
+        urls = [
             line.strip()
             for line in f
             if line.strip() and not line.strip().startswith("#")
         ]
 
-    if not searches:
-        sys.exit(f"Aucune recherche dans {SEARCHES_FILE}.")
+    if not urls:
+        sys.exit("Aucune URL dans searches.txt.")
 
-    for url in searches:
+    for url in urls:
         parsed = urlparse(url)
+        host = (parsed.hostname or "").lower()
         if parsed.scheme != "https" or not (
-            parsed.hostname or ""
-        ).endswith("vinted.fr"):
-            sys.exit(f"URL de recherche non autorisée : {url}")
+            host == "vinted.fr" or host.endswith(".vinted.fr")
+        ):
+            sys.exit(f"URL non autorisée : {url}")
 
-    return searches
+    return urls
 
 
 def load_seen():
-    if os.path.exists(SEEN_FILE):
-        try:
-            with open(SEEN_FILE, encoding="utf-8") as f:
-                data = json.load(f)
+    try:
+        with open(SEEN_FILE, encoding="utf-8") as f:
+            data = json.load(f)
             return data if isinstance(data, dict) else {}
-        except (json.JSONDecodeError, OSError):
-            print("[AVERTISSEMENT] seen.json illisible ; initialisation vide.")
-    return {}
+    except FileNotFoundError:
+        return {}
+    except (json.JSONDecodeError, OSError) as exc:
+        print(f"[ERREUR] Lecture de {SEEN_FILE} : {exc}")
+        return {}
 
 
 def save_seen(seen):
@@ -69,278 +72,161 @@ def save_seen(seen):
         json.dump(seen, f, ensure_ascii=False, indent=2)
 
 
-def make_session():
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent": UA,
-        "Accept": (
-            "text/html,application/xhtml+xml,"
-            "application/xml;q=0.9,*/*;q=0.8"
-        ),
-        "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.7",
-    })
-    return session
-
-
-def text_of(element):
-    return element.get_text(" ", strip=True) if element else ""
-
-
-def extract_id(card, href):
-    testid = card.get("data-testid", "")
-    match = re.search(r"product-item-id-(\d+)", testid)
-    if match:
-        return match.group(1)
-
-    match = re.search(r"/items/(\d+)", href or "")
-    if match:
-        return match.group(1)
-
-    return ""
-
-
-def parse_card(card, base_url):
-    link = card.select_one(
-        'a[data-testid$="--overlay-link"]'
-    )
-
+def parse_item(card, page_url):
+    link = card.select_one('a[href*="/items/"]')
     if not link:
-        link = card.select_one('a[href*="/items/"]')
-
-    image = card.select_one(
-        'img[data-testid$="--image--img"]'
-    )
-    if not image:
-        image = card.select_one("img")
-
-    brand_el = card.select_one(
-        'p[data-testid$="--description-title"]'
-    )
-    subtitle_el = card.select_one(
-        'p[data-testid$="--description-subtitle"]'
-    )
-    price_el = card.select_one(
-        'p[data-testid$="--price-text"]'
-    )
-
-    href = link.get("href", "") if link else ""
-    if href:
-        href = urljoin(base_url, href)
-
-    item_id = extract_id(card, href)
-    if not item_id:
         return None
 
-    brand = text_of(brand_el)
-    subtitle = text_of(subtitle_el)
-    price_text = text_of(price_el)
+    href = urljoin(page_url, link.get("href", ""))
+    match = re.search(r"/items/(\d+)", urlparse(href).path)
+    if not match:
+        return None
 
-    title = ""
-    if link:
-        title = link.get("title", "").strip()
-    if not title and image:
-        title = image.get("alt", "").strip()
-    if not title:
-        title = " ".join(x for x in (brand, subtitle) if x)
-    if not title:
-        title = f"Annonce Vinted {item_id}"
+    image = card.select_one("img")
+    title = (
+        link.get("title")
+        or (image.get("alt") if image else "")
+        or card.get_text(" ", strip=True)
+        or "Annonce Vinted"
+    )
 
     image_url = ""
     if image:
-        image_url = (
-            image.get("src")
-            or image.get("data-src")
-            or ""
-        )
-        if not image_url:
-            srcset = image.get("srcset", "")
-            if srcset:
-                image_url = srcset.split(",")[0].strip().split(" ")[0]
-
-    # Ne pas créer de fausses annonces sans prix ni lien.
-    if not href:
-        return None
+        image_url = image.get("src") or image.get("data-src") or ""
 
     return {
-        "id": item_id,
-        "title": title,
+        "id": match.group(1),
+        "title": title.strip(),
         "url": href,
-        "brand_title": brand,
-        "size_title": subtitle,
-        "status": "",
-        "price": price_text or "Prix non détecté",
-        "photo": {"url": image_url} if image_url else {},
+        "photo": image_url,
+        "details": card.get_text(" ", strip=True),
     }
 
 
-def fetch_items(session, search_url):
-    response = session.get(search_url, timeout=(10, 25))
+def fetch_items(session, url):
+    response = session.get(url, timeout=25)
 
     if response.status_code in (401, 403, 429):
         raise RuntimeError(
-            f"Vinted a refusé la page (HTTP {response.status_code}). "
-            "Arrêt de cette recherche ; réessaie plus tard."
+            f"Vinted a refusé la requête (HTTP {response.status_code}). "
+            "Réessaie plus tard."
         )
 
     response.raise_for_status()
-
     soup = BeautifulSoup(response.text, "html.parser")
 
-    # Sélecteurs des cartes d'annonces du catalogue.
-    cards = soup.select(
-        'div[data-testid^="product-item-id-"]'
-    )
+    # Les identifiants des cartes peuvent varier selon la version du site.
+    cards = soup.select('[data-testid^="product-item-id-"]')
 
     if not cards:
-        # Une page de blocage ou un changement de structure
-        # ne doit pas être interprété comme zéro annonce.
-        title = text_of(soup.title)
-        raise RuntimeError(
-            "Aucune carte d'annonce détectée dans le HTML. "
-            f"Titre de la page : {title or 'inconnu'}. "
-            "Le catalogue peut nécessiter JavaScript ou sa structure "
-            "HTML a changé. Aucune annonce ne sera marquée comme vue."
-        )
+        cards = soup.select('a[href*="/items/"]')
 
-    items = []
+    items = {}
     for card in cards:
-        item = parse_card(card, search_url)
+        item = parse_item(card, url)
         if item:
-            items.append(item)
+            items[item["id"]] = item
 
     if not items:
+        title = soup.title.get_text(" ", strip=True) if soup.title else "inconnu"
         raise RuntimeError(
-            f"{len(cards)} cartes HTML trouvées, mais aucun identifiant "
-            "et lien d'annonce exploitable. Le parseur doit être adapté."
+            "Aucune annonce exploitable détectée dans le HTML reçu. "
+            f"Titre de page : {title}. "
+            "Le site peut nécessiter JavaScript ou avoir changé de structure."
         )
 
-    return items
+    return list(items.values())
 
 
 def notify(item):
-    base = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
+    api_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
-    # Échappement HTML pour éviter qu'un titre casse le message Telegram.
-    title = html.escape(str(item.get("title") or "Annonce"))
-    brand = html.escape(str(item.get("brand_title") or "-"))
-    size = html.escape(str(item.get("size_title") or "-"))
-    price = html.escape(str(item.get("price") or "-"))
-    url = html.escape(str(item.get("url") or ""), quote=True)
+    title = html.escape(item["title"])
+    url = html.escape(item["url"], quote=True)
+    details = html.escape(item["details"][:500])
 
-    caption = (
+    message = (
         f"<b>{title}</b>\n"
-        f"💶 {price}\n"
-        f"🏷 {brand} | 📏 {size}\n"
-        f'<a href="{url}">Voir l’annonce</a>'
+        f"{details}\n"
+        f'<a href="{url}">Voir sur Vinted</a>'
     )
 
-    photo = (item.get("photo") or {}).get("url")
-
-    if photo:
-        try:
-            r = requests.post(
-                f"{base}/sendPhoto",
-                data={
-                    "chat_id": TELEGRAM_CHAT_ID,
-                    "photo": photo,
-                    "caption": caption,
-                    "parse_mode": "HTML",
-                },
-                timeout=20,
-            )
-            if r.ok and r.json().get("ok"):
-                return
-        except (requests.RequestException, ValueError):
-            pass
-
-    r = requests.post(
-        f"{base}/sendMessage",
+    response = requests.post(
+        api_url,
         data={
             "chat_id": TELEGRAM_CHAT_ID,
-            "text": caption,
+            "text": message,
             "parse_mode": "HTML",
-            "disable_web_page_preview": "true",
+            "disable_web_page_preview": "false",
         },
         timeout=20,
     )
-    r.raise_for_status()
+    response.raise_for_status()
 
-    if not r.json().get("ok"):
-        raise RuntimeError(f"Telegram a refusé le message : {r.text[:300]}")
+    result = response.json()
+    if not result.get("ok"):
+        raise RuntimeError(f"Erreur Telegram : {result}")
 
 
-def run_once(searches):
+def run_once(urls):
     seen = load_seen()
-    session = make_session()
     errors = 0
 
-    try:
-        for index, url in enumerate(searches):
+    with requests.Session() as session:
+        session.headers.update(HEADERS)
+
+        for index, url in enumerate(urls):
             if index:
-                time.sleep(REQUEST_DELAY)
+                time.sleep(2)
 
             try:
                 items = fetch_items(session, url)
-            except Exception as e:
-                print(f"[ERREUR] {url}\n  {e}")
+            except (requests.RequestException, RuntimeError) as exc:
+                print(f"[ERREUR] {url}\n  {exc}")
                 errors += 1
                 continue
 
-            known = set(str(x) for x in seen.get(url, []))
             first_run = url not in seen
-
-            new_items = [
-                item for item in items
-                if str(item["id"]) not in known
-            ]
+            known = set(str(x) for x in seen.get(url, []))
 
             if first_run:
                 print(
-                    f"[INIT] {url} : {len(items)} annonces mémorisées, "
-                    "aucune notification initiale."
+                    f"[INIT] {len(items)} annonces mémorisées "
+                    "sans notification initiale."
                 )
             else:
+                new_items = [
+                    item for item in items
+                    if item["id"] not in known
+                ]
+
                 for item in reversed(new_items):
                     try:
                         notify(item)
-                        print(
-                            f"[ALERTE] {item.get('title')} "
-                            f"({item.get('url')})"
-                        )
-                    except Exception as e:
-                        print(f"[ERREUR Telegram] {e}")
+                        print(f"[ALERTE] {item['title']} - {item['url']}")
+                    except Exception as exc:
+                        print(f"[ERREUR Telegram] {exc}")
                         errors += 1
 
                 if not new_items:
-                    print(f"[OK] {url} : rien de nouveau.")
+                    print(f"[OK] Aucun nouvel article : {url}")
 
-            # N'enregistre la recherche qu'après une extraction valide.
-            # Les annonces les plus récentes restent en tête.
-            old_ids = seen.get(url, [])
-            ids = [str(item["id"]) for item in items]
-            ids.extend(str(x) for x in old_ids)
+            # N'enregistre les identifiants que si l'extraction a réussi.
+            ids = [item["id"] for item in items]
+            ids.extend(str(x) for x in seen.get(url, []))
             seen[url] = list(dict.fromkeys(ids))[:MAX_SEEN]
-
             save_seen(seen)
-
-    finally:
-        session.close()
 
     return errors
 
 
 def main():
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
-        sys.exit("Définissez TELEGRAM_TOKEN et TELEGRAM_CHAT_ID.")
+        sys.exit("Secrets TELEGRAM_TOKEN et TELEGRAM_CHAT_ID requis.")
 
-    searches = load_searches()
-
-    if "--loop" in sys.argv:
-        while True:
-            run_once(searches)
-            time.sleep(LOOP_DELAY)
-    else:
-        sys.exit(1 if run_once(searches) else 0)
+    urls = load_searches()
+    errors = run_once(urls)
+    sys.exit(1 if errors else 0)
 
 
 if __name__ == "__main__":
