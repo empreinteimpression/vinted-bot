@@ -7,3 +7,4 @@ https://www.vinted.fr/catalog?search_text=nano%20puff&brand_ids[]=90804&status_i
 https://www.vinted.fr/catalog?search_text=retro-x&brand_ids[]=90804&status_ids[]=6&status_ids[]=1&status_ids[]=2&price_to=30&currency=EUR&order=newest_first
 https://www.vinted.fr/catalog?search_text=better%20sweater&brand_ids[]=90804&status_ids[]=6&status_ids[]=1&status_ids[]=2&price_to=25&currency=EUR&order=newest_first
 https://www.vinted.fr/catalog?search_text=detroit&catalog[]=1206&size_ids[]=208&brand_ids[]=362&status_ids[]=2&price_to=30&currency=EUR&order=newest_first
+https://www.vinted.fr/catalog?search_text=3DS&catalog[]=3025&page=1&time=1792770312&brand_ids[]=77600&status_ids[]=1&status_ids[]=2&price_to=60&currency=EUR&order=newest_first
