@@ -129,6 +129,16 @@ def fetch_items(session, url):
 
     if not items:
         title = soup.title.get_text(" ", strip=True) if soup.title else "inconnu"
+        low = title.lower()
+        blocked = any(
+            k in low
+            for k in ("just a moment", "access denied", "captcha", "robot",
+                      "attention required", "forbidden", "inconnu")
+        )
+        if "vinted" in low and not blocked:
+            # Page de résultats normale mais vide : aucune annonce pour l'instant.
+            print(f"[VIDE] Aucune annonce actuellement pour : {url}")
+            return []
         raise RuntimeError(
             "Aucune annonce exploitable détectée dans le HTML reçu. "
             f"Titre de page : {title}. "
