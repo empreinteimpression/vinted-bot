@@ -1,5 +1,5 @@
 https://www.vinted.fr/catalog?search_text=dragon%20quest%207%20reimagined&catalog[]=3026&price_to=30.00&currency=EUR&status_ids[]=1&status_ids[]=2&status_ids[]=6&video_game_platform_ids[]=1273&order=newest_first
-https://www.vinted.fr/catalog?search_text=kanken&price_to=20&currency=EUR&status_ids[]=6&order=newest_first&price_from=0&brand_ids[]=81026
+https://www.vinted.fr/catalog?search_text=Fjällräven&price_to=20&currency=EUR&status_ids[]=6&order=newest_first&price_from=0&brand_ids[]=81026
 https://www.vinted.fr/catalog?search_text=Pok%C3%A9mon%20platine&catalog[]=3026&price_from=0&price_to=25&currency=EUR&video_game_platform_ids[]=1267&status_ids[]=1&status_ids[]=2&status_ids[]=3&order=newest_first
 https://www.vinted.fr/catalog?search_text=casio%20graph%2035&price_from=0&price_to=7&currency=EUR&brand_ids[]=2575&brand_ids[]=306878&brand_ids[]=8233&status_ids[]=6&status_ids[]=1&status_ids[]=2&order=newest_first
 https://www.vinted.fr/catalog?search_text=synchilla&brand_ids[]=90804&status_ids[]=6&status_ids[]=1&status_ids[]=2&price_to=20&currency=EUR&order=newest_first
